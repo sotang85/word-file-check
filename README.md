@@ -32,6 +32,16 @@ python lexdiff_gui.py
 프로그램에서 원본·수정 DOCX 파일과 결과 저장 위치를 선택하고, 옵션(구두점/공백 무시, 임계값)을 조정한 뒤 **비교 실행** 버튼을 누르면 됩니다. 실행이 끝나면 하단 테이블과 텍스트 영역에서 변경 문장을 즉시 미리 확인할 수 있으며, 생성된 DOCX/CSV는 지정한 경로에 저장됩니다.
 
 
+## 웹 인터페이스 실행
+
+브라우저에서 업로드와 다운로드만으로 비교 작업을 처리하고 싶다면 Flask 기반 웹 애플리케이션을 실행하세요.
+
+```bash
+python lexdiff_web.py
+```
+
+기본적으로 `http://localhost:5000`에서 서비스되며, 페이지에서 DOCX 파일 두 개를 업로드하고 옵션(무시 규칙, 임계값, 출력 파일명)을 지정한 뒤 **비교 실행**을 클릭하면 됩니다. 결과는 페이지 내 테이블로 미리보기되고, 같은 화면에서 하이라이트 DOCX와 CSV 리포트를 즉시 내려받을 수 있습니다. 결과 파일은 메모리에만 보관되며 10분 후 자동으로 삭제됩니다.
+
 ## 출력 형식
 
 - DOCX: 추가 문장은 밑줄, 삭제 문장은 취소선, 수정 문장은 단어 단위로 노란색 하이라이트 표시됩니다.
@@ -52,6 +62,52 @@ bash samples/run_samples.sh
 ```
 
 각 샘플은 `input` 폴더에 원본/수정 문서를, `output` 폴더에 결과 DOCX 및 CSV를 생성합니다.
+
+
+## GitHub Codespaces에서 빠른 실행
+
+GitHub Codespaces에서는 기본적으로 Python이 준비되어 있으므로 아래 단계만 수행하면 됩니다.
+
+1. **터미널 열기**: Codespaces 창에서 `Terminal → New Terminal`을 선택합니다.
+2. **가상환경 생성 및 활성화** (선택 사항이지만 권장):
+
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate
+   ```
+
+3. **필수 패키지 설치**:
+
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **GUI 실행** (시각화 환경이 필요한 경우 VS Code의 `Open in Desktop` 또는 포트 포워딩된 브라우저를 사용하세요):
+
+   ```bash
+   python lexdiff_gui.py
+   ```
+
+   웹 브라우저에서 직접 비교하려면 포트 포워딩 후 아래 명령으로 Flask 앱을 실행하세요.
+
+   ```bash
+   python lexdiff_web.py
+   ```
+
+5. **CLI 실행 예시**:
+
+   ```bash
+   python lexdiff.py A.docx B.docx --out out.docx --csv diff.csv --ignore punct,space --threshold 0.80
+   ```
+
+6. **샘플 테스트** (샘플 입력/출력을 자동 생성):
+
+   ```bash
+   bash samples/run_samples.sh
+   ```
+
+필요에 따라 `pip install --upgrade pip`으로 패키지 관리자를 최신 상태로 맞춘 뒤 위 명령을 실행해도 됩니다.
+
 
 ## 제한 사항
 

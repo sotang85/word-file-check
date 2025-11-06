@@ -349,6 +349,8 @@ def write_csv_report(operations: List[dict], output_path: str) -> None:
             )
 
 
+=======
+
 
 def run_diff(
     source: str,
@@ -400,6 +402,7 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
     )
 
 
+=======
 
 if __name__ == "__main__":
     main()
