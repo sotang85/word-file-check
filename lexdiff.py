@@ -26,6 +26,9 @@ class SentenceRecord:
     postfix: str = ""
 
 
+Operation = Dict[str, Any]
+
+
 EXTRA_PUNCTUATION = "“”‘’‚‛„‟‹›«»、，；：·…‧〈〉《》「」『』【】〔〕（）［］｛｝()[]{}<>？！。．﹒﹔﹖﹗"
 PUNCTUATION_TRANSLATION = str.maketrans('', '', string.punctuation + EXTRA_PUNCTUATION)
 
@@ -140,12 +143,12 @@ def extract_operations(
     sentences_b: List[SentenceRecord],
     ignore: Iterable[str],
     threshold: float,
-) -> List[dict]:
+) -> List[Operation]:
     ignore_set = set(x.strip().lower() for x in ignore if x.strip())
     norm_a = [normalize_text(rec.text, ignore_set) for rec in sentences_a]
     norm_b = [normalize_text(rec.text, ignore_set) for rec in sentences_b]
     matcher = SequenceMatcher(None, norm_a, norm_b, autojunk=False)
-    operations: List[dict] = []
+    operations: List[Operation] = []
 
     for tag, i1, i2, j1, j2 in matcher.get_opcodes():
         if tag == "equal":
@@ -264,7 +267,7 @@ def append_text(paragraph, text: str, formatter: Optional[Callable[[Any], None]]
             formatter(run)
 
 
-def build_highlighted_document(operations: List[dict], output_path: str) -> None:
+def build_highlighted_document(operations: List[Operation], output_path: str) -> None:
     document = Document()
     paragraph_cache: Dict[int, Any] = {}
     highest_created = -1
@@ -325,7 +328,8 @@ def build_highlighted_document(operations: List[dict], output_path: str) -> None
     document.save(output_path)
 
 
-def write_csv_report(operations: List[dict], output_path: str) -> None:
+def write_csv_report(operations: List[Operation], output_path: str) -> None:
+
     fieldnames = ["type", "sim", "original", "revised", "idxA", "idxB"]
     with open(output_path, "w", newline="", encoding="utf-8") as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
@@ -356,7 +360,7 @@ def run_diff(
     out_csv: str,
     ignore_tokens: Optional[Iterable[str]] = None,
     threshold: float = 0.8,
-) -> List[Dict[str, Any]]:
+) -> List[Operation]:
     """Execute the diff workflow without relying on CLI parsing.
 
     Returns the list of diff operations so callers such as the GUI can present
@@ -399,8 +403,6 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
     )
 
 
-=======
-=======
 
 if __name__ == "__main__":
     main()

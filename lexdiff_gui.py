@@ -2,13 +2,14 @@
 """Simple Tkinter front-end for the lexdiff CLI."""
 from __future__ import annotations
 
+import sys
 import threading
 import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 from typing import Dict, List
 
-from lexdiff import run_diff
+from lexdiff import Operation, run_diff
 
 
 class LexDiffGUI:
@@ -25,7 +26,7 @@ class LexDiffGUI:
         self.ignore_punct_var = tk.BooleanVar(value=False)
         self.ignore_space_var = tk.BooleanVar(value=False)
 
-        self.operations: List[dict] = []
+        self.operations: List[Operation] = []
         self._result_rows: Dict[str, dict] = {}
 
         self._build_layout()
@@ -239,7 +240,7 @@ class LexDiffGUI:
             return
         self.root.after(0, self._handle_success, operations)
 
-    def _handle_success(self, operations: List[dict]) -> None:
+    def _handle_success(self, operations: List[Operation]) -> None:
         self.progress.stop()
         self.progress.config(mode="determinate", value=100)
         self._populate_results(operations)
@@ -288,7 +289,7 @@ class LexDiffGUI:
         self._set_text(self.original_text, "")
         self._set_text(self.revised_text, "")
 
-    def _populate_results(self, operations: List[dict]) -> None:
+    def _populate_results(self, operations: List[Operation]) -> None:
         self.operations = operations
         self._result_rows.clear()
         filtered = [op for op in operations if op.get("type") != "equal"]
@@ -361,7 +362,17 @@ class LexDiffGUI:
 
 
 def main() -> None:
-    root = tk.Tk()
+    try:
+        root = tk.Tk()
+    except tk.TclError as exc:
+        message = (
+            "그래픽 디스플레이를 찾을 수 없어 GUI를 실행할 수 없습니다.\n"
+            "Codespaces나 터미널 환경에서는 CLI(`python lexdiff.py …`) "
+            "또는 Flask 웹 앱(`python lexdiff_web.py`)을 사용해 주세요."
+        )
+        print(message, file=sys.stderr)
+        raise SystemExit(1) from exc
+
     LexDiffGUI(root)
     root.mainloop()
 

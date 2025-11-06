@@ -20,7 +20,7 @@ from flask import (
     url_for,
 )
 
-from lexdiff import annotate_numeric_delta, run_diff
+from lexdiff import Operation, annotate_numeric_delta, run_diff
 
 
 app = Flask(__name__)
@@ -160,7 +160,7 @@ def download(token: str, fmt: str) -> Response:
     return send_file(buffer, as_attachment=True, download_name=str(filename), mimetype=mimetype)
 
 
-def _format_operations(operations: Iterable[dict]) -> List[dict]:
+def _format_operations(operations: Iterable[Operation]) -> List[dict]:
     formatted: List[dict] = []
     for op in operations:
         if op.get("type") == "equal":
@@ -182,7 +182,7 @@ def _format_operations(operations: Iterable[dict]) -> List[dict]:
     return formatted
 
 
-def _summarize_operations(operations: Iterable[dict]) -> Dict[str, int]:
+def _summarize_operations(operations: Iterable[Operation]) -> Dict[str, int]:
     summary = {"add": 0, "delete": 0, "replace": 0}
     for op in operations:
         op_type = op.get("type")
