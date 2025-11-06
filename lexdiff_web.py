@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Flask 웹 애플리케이션 – 새 엔진과 UI에 맞게 재작성."""
+
 from __future__ import annotations
 
 import io
@@ -64,6 +65,7 @@ def _summarize(rows: Iterable[DiffRow]) -> Dict[str, int]:
         elif row.type == "replace":
             summary["replace"] += 1
     return summary
+
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -141,6 +143,7 @@ def index() -> str:
         rows = _present_rows(result.rows)
         summary = _summarize(result.rows)
 
+
         return render_template(
             "index.html",
             form=form_values,
@@ -193,4 +196,5 @@ def download(token: str, fmt: str) -> Response:
 
 
 if __name__ == "__main__":  # pragma: no cover - manual execution only
+
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "5000")), debug=False)

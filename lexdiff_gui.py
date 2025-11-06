@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Tkinter 기반의 새로운 시각화 도구."""
+
 from __future__ import annotations
 
 import sys
@@ -20,6 +21,7 @@ class LexDiffApp:
         self.root.title("lexdiff – DOCX 문장 비교 도구")
         self.root.geometry("1080x680")
         self.root.minsize(960, 600)
+
 
         self.source_var = tk.StringVar()
         self.target_var = tk.StringVar()
@@ -77,6 +79,7 @@ class LexDiffApp:
         ttk.Label(options, text="유사도 임계값").grid(row=1, column=0, sticky="w", pady=(12, 0))
         scale = ttk.Scale(
             options,
+
             from_=0.0,
             to=1.0,
             orient=tk.HORIZONTAL,
@@ -117,6 +120,7 @@ class LexDiffApp:
             self.result_tree.heading(column, text=text)
             self.result_tree.column(column, width=widths[column], anchor=tk.W if column in {"original", "revised"} else tk.CENTER)
 
+
         self.result_tree.tag_configure("add", foreground="#1b5e20")
         self.result_tree.tag_configure("del", foreground="#b71c1c")
         self.result_tree.tag_configure("replace", foreground="#f57f17")
@@ -154,6 +158,7 @@ class LexDiffApp:
 
     def _choose_source(self) -> None:
         path = filedialog.askopenfilename(title="원본 DOCX 선택", filetypes=[("Word 문서", "*.docx"), ("모든 파일", "*.*")])
+
         if path:
             self.source_var.set(path)
             self._suggest_outputs()
@@ -242,6 +247,7 @@ class LexDiffApp:
             self.status_var.set("완료 – 변경 사항이 없습니다.")
         messagebox.showinfo("완료", "비교가 종료되었습니다. 결과 파일을 확인하세요.")
 
+
     def _handle_failure(self, exc: Exception) -> None:
         self.progress.stop()
         self.progress.config(mode="determinate", value=0)
@@ -251,6 +257,7 @@ class LexDiffApp:
         messagebox.showerror("실패", f"비교 중 오류가 발생했습니다:\n{exc}")
 
     def _set_running_state(self, running: bool) -> None:
+
         self.run_button.config(state=tk.DISABLED if running else tk.NORMAL)
 
     def _validate_inputs(self) -> List[str]:
@@ -263,6 +270,7 @@ class LexDiffApp:
             errors.append("결과 DOCX 저장 위치를 지정하세요.")
         if not self.out_csv_var.get():
             errors.append("CSV 저장 위치를 지정하세요.")
+
         threshold = self.threshold_var.get()
         if not 0.0 <= threshold <= 1.0:
             errors.append("임계값은 0과 1 사이여야 합니다.")
@@ -307,6 +315,7 @@ class LexDiffApp:
             )
             self._row_map[tree_row] = op
 
+
         first = self.result_tree.get_children()
         if first:
             self.result_tree.selection_set(first[0])
@@ -337,6 +346,7 @@ class LexDiffApp:
     def _compose_sentence(self, record) -> str:
         if not record:
             return ""
+
         prefix = record.prefix or ""
         postfix = record.postfix or ""
         return f"{prefix}{record.text}{postfix}".strip() or record.text
@@ -348,6 +358,7 @@ class LexDiffApp:
         return text[: limit - 1] + "…"
 
 
+
 def main() -> None:
     try:
         root = tk.Tk()
@@ -356,6 +367,7 @@ def main() -> None:
             "그래픽 디스플레이를 찾을 수 없어 GUI를 실행할 수 없습니다.\n"
             "Codespaces 같은 터미널 환경에서는 CLI(`python lexdiff.py …`) 또는 "
             "웹 인터페이스(`python lexdiff_web.py`)를 사용해 주세요."
+
         )
         print(message, file=sys.stderr)
         raise SystemExit(1) from exc
@@ -365,4 +377,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":  # pragma: no cover - direct invocation only
+
     main()
