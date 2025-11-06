@@ -349,22 +349,56 @@ def write_csv_report(operations: List[dict], output_path: str) -> None:
             )
 
 
+
+def run_diff(
+    source: str,
+    target: str,
+    out_docx: str,
+    out_csv: str,
+    ignore_tokens: Optional[Iterable[str]] = None,
+    threshold: float = 0.8,
+) -> List[dict]:
+    """Execute the diff workflow without relying on CLI parsing.
+
+    Returns the list of diff operations so callers such as the GUI can present
+    the result immediately without reparsing the documents.
+    """
+
+    ignore_list = [token.strip().lower() for token in (ignore_tokens or []) if token.strip()]
+
+    if not os.path.exists(source):
+        raise FileNotFoundError(f"Source file not found: {source}")
+    if not os.path.exists(target):
+        raise FileNotFoundError(f"Target file not found: {target}")
+
+    sentences_a = load_sentences(source)
+    sentences_b = load_sentences(target)
+
+    operations = extract_operations(sentences_a, sentences_b, ignore_list, threshold)
+
+    for path in (out_docx, out_csv):
+        directory = os.path.dirname(os.path.abspath(path))
+        if directory and not os.path.exists(directory):
+            os.makedirs(directory, exist_ok=True)
+
+    build_highlighted_document(operations, out_docx)
+    write_csv_report(operations, out_csv)
+
+    return operations
+
+
 def main(argv: Optional[Sequence[str]] = None) -> None:
     args = parse_args(argv)
-    ignore = args.ignore_tokens
 
-    if not os.path.exists(args.source):
-        raise FileNotFoundError(f"Source file not found: {args.source}")
-    if not os.path.exists(args.target):
-        raise FileNotFoundError(f"Target file not found: {args.target}")
+    run_diff(
+        source=args.source,
+        target=args.target,
+        out_docx=args.out_docx,
+        out_csv=args.out_csv,
+        ignore_tokens=args.ignore_tokens,
+        threshold=args.threshold,
+    )
 
-    sentences_a = load_sentences(args.source)
-    sentences_b = load_sentences(args.target)
-
-    operations = extract_operations(sentences_a, sentences_b, ignore, args.threshold)
-
-    build_highlighted_document(operations, args.out_docx)
-    write_csv_report(operations, args.out_csv)
 
 
 if __name__ == "__main__":

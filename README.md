@@ -21,6 +21,17 @@ python lexdiff.py A.docx B.docx --out out.docx --csv diff.csv --ignore punct,spa
 - `--ignore`: 비교 시 무시할 요소. `punct`, `space` 조합을 콤마로 구분하여 지정
 - `--threshold`: 문장 교체로 분류하기 위한 최소 유사도 (0~1)
 
+## GUI 실행
+
+CLI 대신 간단한 시각화 인터페이스를 사용하려면 Tkinter 기반 GUI를 실행하세요.
+
+```bash
+python lexdiff_gui.py
+```
+
+프로그램에서 원본·수정 DOCX 파일과 결과 저장 위치를 선택하고, 옵션(구두점/공백 무시, 임계값)을 조정한 뒤 **비교 실행** 버튼을 누르면 됩니다. 실행이 끝나면 하단 테이블과 텍스트 영역에서 변경 문장을 즉시 미리 확인할 수 있으며, 생성된 DOCX/CSV는 지정한 경로에 저장됩니다.
+
+
 ## 출력 형식
 
 - DOCX: 추가 문장은 밑줄, 삭제 문장은 취소선, 수정 문장은 단어 단위로 노란색 하이라이트 표시됩니다.
