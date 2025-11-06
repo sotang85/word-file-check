@@ -20,7 +20,6 @@ class LexDiffApp:
         self.root.title("lexdiff – DOCX 문장 비교 도구")
         self.root.geometry("1080x680")
         self.root.minsize(960, 600)
-
         self.source_var = tk.StringVar()
         self.target_var = tk.StringVar()
         self.out_docx_var = tk.StringVar()
