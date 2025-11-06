@@ -12,8 +12,11 @@ from typing import Dict, Iterable, List
 
 if importlib.util.find_spec("flask") is None:  # pragma: no cover - 환경 종속 확인
     raise SystemExit(
-        "Flask가 설치되어 있지 않습니다. `pip install -r requirements.txt` 명령으로"
-        " 의존성을 먼저 설치해주세요."
+        "Flask가 설치되어 있지 않습니다. 아래 명령을 순서대로 실행한 뒤 다시 시도해 주세요:\n"
+        "  python -m venv .venv\n"
+        "  source .venv/bin/activate\n"
+        "  python -m pip install -r requirements.txt\n"
+        "Codespaces에서도 동일하게 실행하면 Flask를 포함한 의존성이 설치됩니다."
     )
 
 from flask import (
