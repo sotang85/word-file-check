@@ -329,6 +329,7 @@ def build_highlighted_document(operations: List[Operation], output_path: str) ->
 
 
 def write_csv_report(operations: List[Operation], output_path: str) -> None:
+
     fieldnames = ["type", "sim", "original", "revised", "idxA", "idxB"]
     with open(output_path, "w", newline="", encoding="utf-8") as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
@@ -349,6 +350,7 @@ def write_csv_report(operations: List[Operation], output_path: str) -> None:
                 "idxB": op["b"].index + 1 if op.get("b") else "",
             }
             writer.writerow(row)
+
 
 
 def run_diff(
@@ -399,6 +401,7 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
         ignore_tokens=args.ignore_tokens,
         threshold=args.threshold,
     )
+
 
 
 if __name__ == "__main__":
