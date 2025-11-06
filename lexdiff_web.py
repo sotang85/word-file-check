@@ -2,12 +2,19 @@
 """Flask 웹 애플리케이션 – 새 엔진과 UI에 맞게 재작성."""
 from __future__ import annotations
 
+import importlib.util
 import io
 import os
 import tempfile
 import time
 import uuid
 from typing import Dict, Iterable, List
+
+if importlib.util.find_spec("flask") is None:  # pragma: no cover - 환경 종속 확인
+    raise SystemExit(
+        "Flask가 설치되어 있지 않습니다. `pip install -r requirements.txt` 명령으로"
+        " 의존성을 먼저 설치해주세요."
+    )
 
 from flask import (
     Flask,
