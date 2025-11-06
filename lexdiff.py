@@ -337,19 +337,16 @@ def write_csv_report(operations: List[dict], output_path: str) -> None:
             revised = op["b"].text if op.get("b") else ""
             if op["type"] == "replace":
                 revised = annotate_numeric_delta(original, revised)
-            writer.writerow(
-                {
-                    "type": op["type"],
-                    "sim": f"{op.get('sim', 0.0):.2f}",
-                    "original": original,
-                    "revised": revised,
-                    "idxA": op["a"].index + 1 if op.get("a") else "",
-                    "idxB": op["b"].index + 1 if op.get("b") else "",
-                }
-            )
+            row = {
+                "type": op["type"],
+                "sim": f"{op.get('sim', 0.0):.2f}",
+                "original": original,
+                "revised": revised,
+                "idxA": op["a"].index + 1 if op.get("a") else "",
+                "idxB": op["b"].index + 1 if op.get("b") else "",
+            }
+            writer.writerow(row)
 
-
-=======
 
 
 def run_diff(
@@ -359,7 +356,7 @@ def run_diff(
     out_csv: str,
     ignore_tokens: Optional[Iterable[str]] = None,
     threshold: float = 0.8,
-) -> List[dict]:
+) -> List[Dict[str, Any]]:
     """Execute the diff workflow without relying on CLI parsing.
 
     Returns the list of diff operations so callers such as the GUI can present
@@ -402,6 +399,7 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
     )
 
 
+=======
 =======
 
 if __name__ == "__main__":
