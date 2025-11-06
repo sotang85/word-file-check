@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Flask web application for running lexdiff through a browser."""
+"""Flask 웹 애플리케이션 – 새 엔진과 UI에 맞게 재작성."""
+
 from __future__ import annotations
 
 import io
@@ -20,8 +21,7 @@ from flask import (
     url_for,
 )
 
-from lexdiff import Operation, annotate_numeric_delta, run_diff
-
+from lexdiff import DependencyError, DiffRow, run_diff
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("LEXDIFF_SECRET_KEY", "lexdiff-web-ui")
@@ -35,6 +35,37 @@ def _cleanup_cache() -> None:
     expired = [token for token, payload in _RESULT_CACHE.items() if now - payload["created"] > _CACHE_TTL]
     for token in expired:
         _RESULT_CACHE.pop(token, None)
+
+
+def _present_rows(rows: Iterable[DiffRow]) -> List[dict]:
+    mapping = {"add": "add", "del": "delete", "replace": "replace"}
+    presented: List[dict] = []
+    for row in rows:
+        type_key = mapping.get(row.type, row.type)
+        presented.append(
+            {
+                "type": type_key,
+                "sim": row.sim,
+                "original": row.original,
+                "revised": row.revised,
+                "idxA": row.idxA or "-",
+                "idxB": row.idxB or "-",
+            }
+        )
+    return presented
+
+
+def _summarize(rows: Iterable[DiffRow]) -> Dict[str, int]:
+    summary = {"add": 0, "delete": 0, "replace": 0}
+    for row in rows:
+        if row.type == "add":
+            summary["add"] += 1
+        elif row.type == "del":
+            summary["delete"] += 1
+        elif row.type == "replace":
+            summary["replace"] += 1
+    return summary
+
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -80,7 +111,7 @@ def index() -> str:
                 source.save(source_path)
                 target.save(target_path)
 
-                operations = run_diff(
+                result = run_diff(
                     source=source_path,
                     target=target_path,
                     out_docx=out_docx_path,
@@ -93,6 +124,9 @@ def index() -> str:
                     docx_bytes = docx_file.read()
                 with open(out_csv_path, "rb") as csv_file:
                     csv_bytes = csv_file.read()
+        except DependencyError as exc:
+            flash(str(exc))
+            return render_template("index.html", form=form_values, ignore_selected=ignore_tokens)
         except Exception as exc:  # pylint: disable=broad-except
             flash(f"비교 중 오류가 발생했습니다: {exc}")
             return render_template("index.html", form=form_values, ignore_selected=ignore_tokens)
@@ -106,14 +140,15 @@ def index() -> str:
             "csv_name": out_csv_name,
         }
 
-        display_operations = _format_operations(operations)
-        summary = _summarize_operations(operations)
+        rows = _present_rows(result.rows)
+        summary = _summarize(result.rows)
+
 
         return render_template(
             "index.html",
             form=form_values,
             ignore_selected=ignore_tokens,
-            operations=display_operations,
+            operations=rows,
             summary=summary,
             token=token,
             docx_name=out_docx_name,
@@ -140,12 +175,12 @@ def download(token: str, fmt: str) -> Response:
         return redirect(url_for("index"))
 
     if fmt == "docx":
-        data = payload["docx"]
-        filename = payload["docx_name"]
+        data = payload.get("docx")
+        filename = payload.get("docx_name", "lexdiff_result.docx")
         mimetype = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     elif fmt == "csv":
-        data = payload["csv"]
-        filename = payload["csv_name"]
+        data = payload.get("csv")
+        filename = payload.get("csv_name", "lexdiff_diff.csv")
         mimetype = "text/csv"
     else:
         flash("지원하지 않는 형식입니다.")
@@ -160,36 +195,6 @@ def download(token: str, fmt: str) -> Response:
     return send_file(buffer, as_attachment=True, download_name=str(filename), mimetype=mimetype)
 
 
-def _format_operations(operations: Iterable[Operation]) -> List[dict]:
-    formatted: List[dict] = []
-    for op in operations:
-        if op.get("type") == "equal":
-            continue
-        original = op.get("a").text if op.get("a") else ""
-        revised = op.get("b").text if op.get("b") else ""
-        if op.get("type") == "replace":
-            revised = annotate_numeric_delta(original, revised)
-        formatted.append(
-            {
-                "type": op.get("type"),
-                "sim": f"{op.get('sim', 0.0):.2f}",
-                "original": original,
-                "revised": revised,
-                "idxA": op.get("a").index + 1 if op.get("a") else "-",
-                "idxB": op.get("b").index + 1 if op.get("b") else "-",
-            }
-        )
-    return formatted
+if __name__ == "__main__":  # pragma: no cover - manual execution only
 
-
-def _summarize_operations(operations: Iterable[Operation]) -> Dict[str, int]:
-    summary = {"add": 0, "delete": 0, "replace": 0}
-    for op in operations:
-        op_type = op.get("type")
-        if op_type in summary:
-            summary[op_type] += 1
-    return summary
-
-
-if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "5000")), debug=False)
