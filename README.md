@@ -52,6 +52,7 @@ FLASK_APP=lexdiff_web.py flask run --host 0.0.0.0 --port 5000
 
 - DOCX: 추가 문장은 밑줄, 삭제 문장은 취소선, 수정 문장은 단어 단위로 노란색 하이라이트 표시됩니다.
 - CSV: `type, sim, original, revised, idxA, idxB` 열을 가지며, 숫자 변경이 있는 경우 `revised` 열에 Δ 값이 표시됩니다.
+- 표(테이블) 내부 문장도 동일하게 비교되며, CSV의 인덱스는 `T{표}R{행}C{열}` 형식으로 위치를 표시합니다.
 
 ## 예시 데이터
 

@@ -8,7 +8,7 @@ import string
 from dataclasses import dataclass, field
 from decimal import Decimal, InvalidOperation
 from difflib import SequenceMatcher
-from typing import Iterable, List, Optional, Sequence, Tuple, Dict, Literal
+from typing import Iterable, List, Optional, Sequence, Tuple, Dict, Literal, Set
 
 __all__ = [
     "DependencyError",
@@ -34,7 +34,7 @@ class DependencyError(RuntimeError):
 
 @dataclass
 class Sentence:
-    """Sentence metadata captured from a DOCX paragraph."""
+    """Sentence metadata captured from a DOCX paragraph or table cell."""
 
     index: int
     text: str
@@ -42,6 +42,11 @@ class Sentence:
     sentence_in_paragraph: int
     prefix: str = ""
     postfix: str = ""
+    container: Literal["paragraph", "table"] = "paragraph"
+    table_index: Optional[int] = None
+    row_index: Optional[int] = None
+    cell_index: Optional[int] = None
+    paragraph_in_cell: Optional[int] = None
 
 
 @dataclass
@@ -100,6 +105,51 @@ PUNCTUATION_TRANSLATION = str.maketrans("", "", string.punctuation + EXTRA_PUNCT
 SENTENCE_PATTERN = re.compile(r"[^\n.!?。！？]+(?:[.!?。！？]+(?=\s|$)|$)")
 TOKEN_PATTERN = re.compile(r"\s+|[\w\-\u00C0-\u02AF\u0400-\u04FF\uAC00-\uD7AF]+|[^\w\s]", re.UNICODE)
 NUMBER_PATTERN = re.compile(r"-?\d[\d,]*(?:\.\d+)?")
+
+
+def _iter_document_paragraphs(document) -> Iterable[Tuple[object, Optional[int], Optional[int], Optional[int], Optional[int]]]:
+    """Yield paragraphs in reading order, including table cells."""
+
+    from docx.document import Document as _Document  # type: ignore
+    from docx.oxml.table import CT_Tbl  # type: ignore
+    from docx.oxml.text.paragraph import CT_P  # type: ignore
+    from docx.table import Table, _Cell  # type: ignore
+    from docx.text.paragraph import Paragraph  # type: ignore
+
+    table_counter = -1
+
+    def iter_parent(parent, table_index=None, row_index=None, cell_index=None):
+        nonlocal table_counter
+
+        if isinstance(parent, _Document):
+            element = parent.element.body
+        elif isinstance(parent, _Cell):
+            element = parent._tc
+        else:
+            element = parent._element
+
+        paragraph_counter = 0
+        for child in element.iterchildren():
+            if isinstance(child, CT_P):
+                paragraph = Paragraph(child, parent)
+                yield paragraph, table_index, row_index, cell_index, paragraph_counter
+                paragraph_counter += 1
+            elif isinstance(child, CT_Tbl):
+                table_counter += 1
+                table = Table(child, parent)
+                current_index = table_counter
+                for row_idx, row in enumerate(table.rows):
+                    seen_cells = set()
+                    unique_col = -1
+                    for cell in row.cells:
+                        cell_id = id(cell._tc)
+                        if cell_id in seen_cells:
+                            continue
+                        seen_cells.add(cell_id)
+                        unique_col += 1
+                        yield from iter_parent(cell, current_index, row_idx, unique_col)
+
+    yield from iter_parent(document)
 
 
 def _require_docx():  # type: ignore[override]
@@ -163,7 +213,9 @@ def load_sentences(path: str) -> List[Sentence]:
     document = Document(path)
     sentences: List[Sentence] = []
     idx = 0
-    for paragraph_index, paragraph in enumerate(document.paragraphs):
+    for paragraph_index, (paragraph, table_idx, row_idx, cell_idx, paragraph_in_cell) in enumerate(
+        _iter_document_paragraphs(document)
+    ):
         raw_text = paragraph.text.replace("\r", "")
         if not raw_text.strip():
             continue
@@ -180,6 +232,11 @@ def load_sentences(path: str) -> List[Sentence]:
                     sentence_in_paragraph=sentence_idx,
                     prefix=prefix,
                     postfix=postfix,
+                    container="table" if table_idx is not None else "paragraph",
+                    table_index=table_idx,
+                    row_index=row_idx,
+                    cell_index=cell_idx,
+                    paragraph_in_cell=paragraph_in_cell if table_idx is not None else None,
                 )
             )
             idx += 1
@@ -313,16 +370,71 @@ def build_highlighted_document(operations: Sequence[Operation], output_path: str
     Document, WD_COLOR_INDEX = _require_docx()
     document = Document()
     paragraph_cache: Dict[int, object] = {}
-    highest_created = -1
+    table_cache: Dict[int, object] = {}
+    table_paragraph_cache: Dict[Tuple[int, int, int, int], object] = {}
+    table_initialized: Set[Tuple[int, int, int, int]] = set()
+
+    table_dimensions: Dict[int, List[int]] = {}
+    for op in operations:
+        record = op.revised
+        if (
+            record
+            and record.container == "table"
+            and record.table_index is not None
+            and record.row_index is not None
+            and record.cell_index is not None
+        ):
+            dims = table_dimensions.setdefault(record.table_index, [0, 0])
+            dims[0] = max(dims[0], record.row_index + 1)
+            dims[1] = max(dims[1], record.cell_index + 1)
 
     def ensure_paragraph(paragraph_index: int):
-        nonlocal highest_created
         if paragraph_index in paragraph_cache:
             return paragraph_cache[paragraph_index]
-        while highest_created < paragraph_index:
-            highest_created += 1
-            paragraph_cache[highest_created] = document.add_paragraph()
+        paragraph_cache[paragraph_index] = document.add_paragraph()
         return paragraph_cache[paragraph_index]
+
+    def ensure_table(table_index: int, min_rows: int, min_cols: int):
+        table = table_cache.get(table_index)
+        if table is None:
+            rows = max(1, min_rows)
+            cols = max(1, min_cols)
+            table = document.add_table(rows=rows, cols=cols)
+            try:  # pragma: no cover - style availability depends on Word version
+                table.style = "Table Grid"
+            except (KeyError, AttributeError):
+                pass
+            table_cache[table_index] = table
+        else:
+            # extend rows if necessary
+            while len(table.rows) < min_rows:
+                table.add_row()
+        return table
+
+    def ensure_table_paragraph(record: Sentence):
+        if (
+            record.table_index is None
+            or record.row_index is None
+            or record.cell_index is None
+        ):
+            raise ValueError("table metadata missing from sentence")
+        paragraph_position = record.paragraph_in_cell or 0
+        key = (record.table_index, record.row_index, record.cell_index, paragraph_position)
+        paragraph = table_paragraph_cache.get(key)
+        dims = table_dimensions.get(record.table_index, [record.row_index + 1, record.cell_index + 1])
+        table = ensure_table(record.table_index, dims[0], dims[1])
+        while len(table.rows) <= record.row_index:
+            table.add_row()
+        cell = table.cell(record.row_index, record.cell_index)
+        while len(cell.paragraphs) <= paragraph_position:
+            cell.add_paragraph()
+        if paragraph is None:
+            paragraph = cell.paragraphs[paragraph_position]
+            table_paragraph_cache[key] = paragraph
+        if key not in table_initialized:
+            paragraph.text = ""
+            table_initialized.add(key)
+        return paragraph
 
     for op in operations:
         if op.kind == "del":
@@ -341,7 +453,10 @@ def build_highlighted_document(operations: Sequence[Operation], output_path: str
         record = op.revised or op.original
         if record is None:
             continue
-        paragraph = ensure_paragraph(record.paragraph_index)
+        if record.container == "table" and record.table_index is not None:
+            paragraph = ensure_table_paragraph(record)
+        else:
+            paragraph = ensure_paragraph(record.paragraph_index)
 
         if record.prefix:
             _append_text(paragraph, record.prefix)
@@ -422,6 +537,23 @@ def annotate_numeric_delta(original: str, revised: str) -> str:
     return revised
 
 
+
+def _format_index(record: Optional[Sentence]) -> str:
+    if not record:
+        return ""
+    if (
+        record.container == "table"
+        and record.table_index is not None
+        and record.row_index is not None
+        and record.cell_index is not None
+    ):
+        cell = f"T{record.table_index + 1}R{record.row_index + 1}C{record.cell_index + 1}"
+        if record.paragraph_in_cell:
+            return f"{cell}-P{record.paragraph_in_cell + 1}"
+        return cell
+    return str(record.index + 1)
+
+
 def build_csv_rows(operations: Iterable[Operation]) -> List[DiffRow]:
     rows: List[DiffRow] = []
     for op in operations:
@@ -437,8 +569,8 @@ def build_csv_rows(operations: Iterable[Operation]) -> List[DiffRow]:
                 sim=f"{op.similarity:.2f}",
                 original=original_text,
                 revised=revised_text,
-                idxA=str(op.original.index + 1) if op.original else "",
-                idxB=str(op.revised.index + 1) if op.revised else "",
+                idxA=_format_index(op.original),
+                idxB=_format_index(op.revised),
             )
         )
     return rows
