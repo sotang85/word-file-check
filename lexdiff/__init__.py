@@ -23,6 +23,7 @@ __all__ = [
     "build_highlighted_document",
     "build_csv_rows",
     "write_csv",
+    "compute_diff",
     "run_diff",
     "annotate_numeric_delta",
 ]
@@ -537,6 +538,7 @@ def annotate_numeric_delta(original: str, revised: str) -> str:
     return revised
 
 
+=======
 
 def _format_index(record: Optional[Sentence]) -> str:
     if not record:
@@ -585,11 +587,10 @@ def write_csv(rows: Sequence[DiffRow], output_path: str) -> None:
             writer.writerow(row.to_dict())
 
 
-def run_diff(
+def compute_diff(
     source: str,
     target: str,
-    out_docx: str,
-    out_csv: str,
+    *,
     ignore_tokens: Optional[Iterable[str]] = None,
     threshold: float = 0.8,
 ) -> DiffResult:
@@ -606,10 +607,28 @@ def run_diff(
     operations = compare_sentences(sentences_a, sentences_b, ignore_list, threshold)
     rows = build_csv_rows(operations)
 
+    return DiffResult(operations=operations, rows=rows)
+
+
+def run_diff(
+    source: str,
+    target: str,
+    out_docx: str,
+    out_csv: str,
+    ignore_tokens: Optional[Iterable[str]] = None,
+    threshold: float = 0.8,
+) -> DiffResult:
+    result = compute_diff(
+        source=source,
+        target=target,
+        ignore_tokens=ignore_tokens,
+        threshold=threshold,
+    )
+
     for path in (out_docx, out_csv):
         _ensure_directory(path)
 
-    build_highlighted_document(operations, out_docx)
-    write_csv(rows, out_csv)
+    build_highlighted_document(result.operations, out_docx)
+    write_csv(result.rows, out_csv)
 
-    return DiffResult(operations=operations, rows=rows)
+    return result

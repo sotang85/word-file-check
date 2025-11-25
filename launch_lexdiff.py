@@ -7,10 +7,13 @@ from __future__ import annotations
 
 import os
 import shlex
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 from typing import Callable, Dict
+
+from lexdiff.ollama import DEFAULT_HOST
 
 ROOT_DIR = Path(__file__).resolve().parent
 VENV_DIR = ROOT_DIR / ".venv"
@@ -110,6 +113,35 @@ def _run_cli(python_bin: Path) -> None:
     _run_command(cmd, check=False)
 
 
+def _run_ollama_review(python_bin: Path) -> None:
+    if shutil.which("ollama") is None:
+        print("Ollama CLI를 찾을 수 없습니다. https://ollama.com/download 에서 설치 후 `ollama serve`를 실행해 주세요.")
+        return
+    print("Ollama LLM 리뷰를 실행합니다. 빈 값은 취소로 처리됩니다.")
+    src = input("원본 DOCX 경로: ").strip()
+    if not src:
+        print("취소했습니다.")
+        return
+    tgt = input("수정 DOCX 경로: ").strip()
+    if not tgt:
+        print("취소했습니다.")
+        return
+    model = input("Ollama 모델명 (기본=llama3): ").strip() or "llama3"
+    host = input("Ollama 호스트 (기본=http://localhost:11434): ").strip() or DEFAULT_HOST
+    ignore = input("무시 옵션 (예: punct,space): ").strip()
+    threshold = input("임계값 0~1 (기본=0.8): ").strip()
+    limit = input("프롬프트에 포함할 변경 개수 (기본=30): ").strip()
+    cmd = [str(python_bin), "lexdiff_ollama.py", src, tgt, "--model", model, "--host", host]
+    if ignore:
+        cmd.extend(["--ignore", ignore])
+    if threshold:
+        cmd.extend(["--threshold", threshold])
+    if limit:
+        cmd.extend(["--limit", limit])
+    print("\n명령 실행 중...\n")
+    _run_command(cmd, check=False)
+
+
 def _run_samples(python_bin: Path) -> None:
     print("샘플 문서를 생성하고 비교합니다.")
     _run_command([str(python_bin), "samples/generate_samples.py", "--force"])
@@ -155,6 +187,7 @@ lexdiff 런처
 2) 웹 인터페이스 실행
 3) CLI 실행
 4) 샘플 비교 실행
+5) Ollama LLM 리뷰 실행
 q) 종료
 """.strip()
     )
@@ -192,6 +225,7 @@ def main() -> int:
         "2": _run_web,
         "3": _run_cli,
         "4": _run_samples,
+        "5": _run_ollama_review,
     }
 
     try:

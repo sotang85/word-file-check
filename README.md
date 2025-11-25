@@ -2,6 +2,7 @@
 
 문장 단위로 두 개의 DOCX 파일을 비교하고 변경 사항을 하이라이트한 Word 문서와 CSV 리포트를 생성하는 CLI 도구입니다.
 
+=======
 
 ## 원클릭 실행 (권장)
 
@@ -19,6 +20,8 @@ python launch_lexdiff.py
 - **웹 인터페이스 실행**: Flask 서버를 띄워 브라우저에서 작업합니다.
 - **CLI 실행**: 경로와 옵션만 입력하면 CLI 명령을 자동으로 구성해 실행합니다.
 - **샘플 비교 실행**: 예제 DOCX를 생성한 뒤 diff 결과를 확인합니다.
+- **Ollama 리뷰 실행**: 로컬에서 구동 중인 Ollama 모델로 변경 요약을 생성합니다.
+=======
 
 Windows에서는 `launch_lexdiff.py` 파일을 더블 클릭해도 동일하게 작동하며, 작업이
 끝나면 콘솔 창에서 Enter 키를 누르면 종료됩니다.
@@ -54,6 +57,7 @@ python lexdiff_gui.py
 
 프로그램에서 원본·수정 DOCX 파일과 결과 저장 위치를 선택하고, 옵션(구두점/공백 무시, 임계값)을 조정한 뒤 **비교 실행** 버튼을 누르면 됩니다. 실행이 끝나면 하단 테이블과 텍스트 영역에서 변경 문장을 즉시 미리 확인할 수 있으며, 생성된 DOCX/CSV는 지정한 경로에 저장됩니다.
 
+=======
 
 ## 웹 인터페이스 실행
 
@@ -71,6 +75,23 @@ FLASK_APP=lexdiff_web.py flask run --host 0.0.0.0 --port 5000
 
 페이지가 열리면 DOCX 파일 두 개를 업로드하고 옵션(무시 규칙, 임계값, 출력 파일명)을 지정한 뒤 **비교 실행**을 클릭하면 됩니다. 결과는 페이지 내 테이블로 미리보기되고, 같은 화면에서 하이라이트 DOCX와 CSV 리포트를 즉시 내려받을 수 있습니다. 결과 파일은 메모리에만 보관되며 10분 후 자동으로 삭제됩니다.
 
+## Ollama 기반 LLM 검토
+
+로컬에서 Ollama를 실행 중이라면 LLM에게 변경 요약을 요청할 수 있습니다.
+
+1. Ollama를 설치하고 모델을 준비합니다 (`ollama pull llama3`).
+2. `ollama serve`가 동작 중인지 확인합니다.
+3. 아래 명령으로 diff를 수행하고 요약을 생성합니다.
+
+```bash
+python lexdiff_ollama.py A.docx B.docx --model llama3 --host http://localhost:11434 --ignore punct,space --threshold 0.80 --limit 30
+```
+
+- `--limit`으로 LLM에 전달할 최대 변경 건수를 조정할 수 있습니다.
+- 런처(`launch_lexdiff.py`) 실행 시 메뉴의 **Ollama 리뷰 실행**을 선택해 동일 작업을 인터랙티브하게 실행할 수도 있습니다.
+- Ollama가 설치되어 있지 않으면 친절한 안내 메시지와 함께 실행이 중단됩니다.
+
+=======
 ## 출력 형식
 
 - DOCX: 추가 문장은 밑줄, 삭제 문장은 취소선, 수정 문장은 단어 단위로 노란색 하이라이트 표시됩니다.
@@ -94,7 +115,6 @@ bash samples/run_samples.sh
 각 샘플은 `input` 폴더에 원본/수정 문서를, `output` 폴더에 결과 DOCX 및 CSV를 생성합니다.
 
 =======
-
 ## GitHub Codespaces에서 빠른 실행
 
 GitHub Codespaces에서는 기본적으로 Python이 준비되어 있으므로 아래 단계만 수행하면 됩니다.
