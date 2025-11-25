@@ -539,7 +539,6 @@ def annotate_numeric_delta(original: str, revised: str) -> str:
 
 
 =======
-
 def _format_index(record: Optional[Sentence]) -> str:
     if not record:
         return ""

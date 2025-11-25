@@ -89,6 +89,7 @@ def _run_gui(python_bin: Path) -> None:
 
 def _run_web(python_bin: Path) -> None:
     print("웹 인터페이스를 실행합니다. 브라우저에서 http://127.0.0.1:5000 으로 접속하세요.")
+    print("Codespaces 포트 미리보기(WebView)에서 ServiceWorker 보안 경고가 나오면 포트 포워딩 메뉴의 'Open in Browser'로 여세요.")
     print("종료하려면 Ctrl+C 를 누르세요.")
     _run_command([str(python_bin), "lexdiff_web.py"], check=False)
 

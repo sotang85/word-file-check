@@ -58,7 +58,6 @@ python lexdiff_gui.py
 프로그램에서 원본·수정 DOCX 파일과 결과 저장 위치를 선택하고, 옵션(구두점/공백 무시, 임계값)을 조정한 뒤 **비교 실행** 버튼을 누르면 됩니다. 실행이 끝나면 하단 테이블과 텍스트 영역에서 변경 문장을 즉시 미리 확인할 수 있으며, 생성된 DOCX/CSV는 지정한 경로에 저장됩니다.
 
 =======
-
 ## 웹 인터페이스 실행
 
 브라우저에서 업로드와 다운로드만으로 비교 작업을 처리하고 싶다면 Flask 기반 웹 애플리케이션을 실행하세요.
@@ -146,6 +145,8 @@ GitHub Codespaces에서는 기본적으로 Python이 준비되어 있으므로 �
    ```
 
    Codespaces의 내장 `flask run` 명령을 쓰는 경우에는 반드시 `--host 0.0.0.0 --port 5000` 옵션을 지정해야 외부 접속이 가능합니다.
+
+   > 💡 Codespaces 포트 미리보기(WebView)에서 `Could not register service worker` 같은 보안 경고가 뜨는 경우, 포트 포워딩 탭의 **Open in Browser**를 클릭하거나 직접 `https://<port>-<codespace>.app.github.dev` 주소로 접속하면 경고 없이 정상 작동합니다.
 
 5. **CLI 실행 예시**:
 
