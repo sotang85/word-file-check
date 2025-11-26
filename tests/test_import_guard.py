@@ -1,0 +1,41 @@
+import tempfile
+import unittest
+from pathlib import Path
+
+from lexdiff._import_guard import ensure_tree_clean
+
+
+class ImportGuardTests(unittest.TestCase):
+    def test_ignores_non_marker_equals_lines(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            safe_file = root / "sample.py"
+            safe_file.write_text(
+                "lexdiff 소스에 병합 충돌 표식(======= 등)이 남아 있어 실행할 수 없습니다.",
+                encoding="utf-8",
+            )
+
+            # Should not raise because the equals signs are not conflict markers at line start.
+            ensure_tree_clean(root)
+
+    def test_detects_conflict_markers(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            conflict_file = root / "broken.py"
+            conflict_file.write_text(
+                """print('before')
+<<<<<<< HEAD
+print('ours')
+=======
+print('theirs')
+>>>>>>> branch
+""",
+                encoding="utf-8",
+            )
+
+            with self.assertRaises(SystemExit):
+                ensure_tree_clean(root)
+
+
+if __name__ == "__main__":
+    unittest.main()
