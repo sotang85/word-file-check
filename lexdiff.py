@@ -2,6 +2,12 @@
 """Entry point for the lexdiff CLI."""
 from __future__ import annotations
 
+from pathlib import Path
+
+from lexdiff._import_guard import ensure_source_clean
+
+ensure_source_clean(Path(__file__).resolve().parent / "lexdiff" / "__init__.py")
+
 try:
     from lexdiff.cli import main
 except SyntaxError as exc:  # pragma: no cover - import-time guard

@@ -9,6 +9,10 @@ from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 from typing import Dict, List
 
+from lexdiff._import_guard import ensure_source_clean
+
+ensure_source_clean(Path(__file__).resolve().parent / "lexdiff" / "__init__.py")
+
 try:
     from lexdiff import DependencyError, DiffResult, Operation, run_diff
 except SyntaxError as exc:  # pragma: no cover - import-time guard

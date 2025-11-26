@@ -13,6 +13,10 @@ import sys
 from pathlib import Path
 from typing import Callable, Dict
 
+from lexdiff._import_guard import ensure_source_clean
+
+ensure_source_clean(Path(__file__).resolve().parent / "lexdiff" / "__init__.py")
+
 try:
     from lexdiff.ollama import DEFAULT_HOST
 except SyntaxError as exc:  # pragma: no cover - import-time guard

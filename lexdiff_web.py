@@ -8,7 +8,12 @@ import os
 import tempfile
 import time
 import uuid
+from pathlib import Path
 from typing import Dict, Iterable, List
+
+from lexdiff._import_guard import ensure_source_clean
+
+ensure_source_clean(Path(__file__).resolve().parent / "lexdiff" / "__init__.py")
 
 if importlib.util.find_spec("flask") is None:  # pragma: no cover - 환경 종속 확인
     raise SystemExit(
