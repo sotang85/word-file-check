@@ -52,6 +52,24 @@ class ImportGuardTests(unittest.TestCase):
             with self.assertRaises(SystemExit):
                 ensure_tree_clean(root)
 
+    def test_ignored_paths_allow_local_fixtures(self) -> None:
+        """Paths passed via ``ignore`` are skipped during the scan."""
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            ignored = root / "tests" / "test_import_guard.py"
+            ignored.parent.mkdir(parents=True)
+
+            # Write a real conflict marker into the ignored file; it should be skipped.
+            ignored.write_text("<<<<<<< ours\nshared\n=======\ntheirs\n>>>>>>> branch\n", encoding="utf-8")
+
+            # Without ignore, the conflict would be detected.
+            with self.assertRaises(SystemExit):
+                ensure_tree_clean(root, ignore=())
+
+            # With the default ignore list including this path, the scan should pass.
+            ensure_tree_clean(root)
+
 
 if __name__ == "__main__":
     unittest.main()
