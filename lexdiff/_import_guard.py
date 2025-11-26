@@ -2,11 +2,25 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Optional, Sequence
 
 
-def ensure_source_clean(source_path: Path, *, tokens: Iterable[str] = ("<<<<<<<", "=======", ">>>>>>>")) -> None:
+_DEFAULT_PATTERNS: Sequence[re.Pattern[str]] = (
+    re.compile(r"^<<<<<<< .+", flags=re.MULTILINE),
+    re.compile(r"^=======$", flags=re.MULTILINE),
+    re.compile(r"^>>>>>>> .+", flags=re.MULTILINE),
+)
+
+
+def _contains_conflict_markers(text: str, *, patterns: Sequence[re.Pattern[str]] = _DEFAULT_PATTERNS) -> bool:
+    """Return True when merge-conflict markers are present in the given text."""
+
+    return any(pattern.search(text) for pattern in patterns)
+
+
+def ensure_source_clean(source_path: Path, *, patterns: Sequence[re.Pattern[str]] = _DEFAULT_PATTERNS) -> None:
     """Exit early with a friendly message if conflict markers remain."""
 
     try:
@@ -14,14 +28,14 @@ def ensure_source_clean(source_path: Path, *, tokens: Iterable[str] = ("<<<<<<<"
     except OSError:
         return
 
-    if any(token in contents for token in tokens):
+    if _contains_conflict_markers(contents, patterns=patterns):
         raise SystemExit(
             "lexdiff 소스에 병합 충돌 표식(======= 등)이 남아 있어 실행할 수 없습니다.\n"
             "레포지토리를 깨끗한 상태로 다시 받거나 충돌을 해결한 뒤 다시 실행해 주세요."
         )
 
 
-def _find_conflict(root: Path, *, tokens: Iterable[str]) -> Optional[Path]:
+def _find_conflict(root: Path, *, patterns: Sequence[re.Pattern[str]]) -> Optional[Path]:
     """Return the first Python file containing merge-conflict markers, if any."""
 
     for path in root.rglob("*.py"):
@@ -29,15 +43,15 @@ def _find_conflict(root: Path, *, tokens: Iterable[str]) -> Optional[Path]:
             contents = path.read_text(encoding="utf-8", errors="ignore")
         except OSError:
             continue
-        if any(token in contents for token in tokens):
+        if _contains_conflict_markers(contents, patterns=patterns):
             return path
     return None
 
 
-def ensure_tree_clean(root: Path, *, tokens: Iterable[str] = ("<<<<<<<", "=======", ">>>>>>>")) -> None:
+def ensure_tree_clean(root: Path, *, patterns: Sequence[re.Pattern[str]] = _DEFAULT_PATTERNS) -> None:
     """Scan an entire tree for conflict markers before importing anything heavy."""
 
-    conflict = _find_conflict(root, tokens=tokens)
+    conflict = _find_conflict(root, patterns=patterns)
     if conflict is None:
         return
 

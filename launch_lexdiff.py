@@ -13,7 +13,7 @@ import sys
 from pathlib import Path
 from typing import Callable, Dict
 
-from lexdiff._import_guard import ensure_tree_clean
+from _preflight import ensure_tree_clean
 
 ensure_tree_clean(Path(__file__).resolve().parent)
 

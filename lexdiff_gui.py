@@ -9,7 +9,7 @@ from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 from typing import Dict, List
 
-from lexdiff._import_guard import ensure_tree_clean
+from _preflight import ensure_tree_clean
 
 ensure_tree_clean(Path(__file__).resolve().parent)
 
