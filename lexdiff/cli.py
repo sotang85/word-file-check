@@ -3,9 +3,23 @@ from __future__ import annotations
 
 import argparse
 import sys
+from pathlib import Path
 from typing import Sequence
 
-from . import DependencyError, run_diff
+from ._import_guard import ensure_source_clean
+
+ensure_source_clean(Path(__file__).resolve().parent / "__init__.py")
+
+
+def _import_core():
+    try:
+        from . import DependencyError, run_diff  # type: ignore
+    except SyntaxError as exc:  # pragma: no cover - import-time guard
+        raise SystemExit(
+            "lexdiff 소스에 병합 충돌 표식(======= 등)이 남아 있어 실행할 수 없습니다.\n"
+            "레포지토리를 깨끗한 상태로 다시 받아주세요."
+        ) from exc
+    return DependencyError, run_diff
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -43,6 +57,8 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = parse_args(argv)
+
+    DependencyError, run_diff = _import_core()
 
     try:
         run_diff(

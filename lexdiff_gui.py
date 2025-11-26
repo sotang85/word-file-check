@@ -9,7 +9,17 @@ from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 from typing import Dict, List
 
-from lexdiff import DependencyError, DiffResult, Operation, run_diff
+from lexdiff._import_guard import ensure_source_clean
+
+ensure_source_clean(Path(__file__).resolve().parent / "lexdiff" / "__init__.py")
+
+try:
+    from lexdiff import DependencyError, DiffResult, Operation, run_diff
+except SyntaxError as exc:  # pragma: no cover - import-time guard
+    raise SystemExit(
+        "lexdiff 소스에 병합 충돌 표식(======= 등)이 남아 있어 실행할 수 없습니다.\n"
+        "레포지토리를 깨끗한 상태로 다시 받아 GUI를 실행해 주세요."
+    ) from exc
 
 
 class LexDiffApp:

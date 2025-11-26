@@ -8,7 +8,12 @@ import os
 import tempfile
 import time
 import uuid
+from pathlib import Path
 from typing import Dict, Iterable, List
+
+from lexdiff._import_guard import ensure_source_clean
+
+ensure_source_clean(Path(__file__).resolve().parent / "lexdiff" / "__init__.py")
 
 if importlib.util.find_spec("flask") is None:  # pragma: no cover - 환경 종속 확인
     raise SystemExit(
@@ -30,7 +35,13 @@ from flask import (
     url_for,
 )
 
-from lexdiff import DependencyError, DiffRow, run_diff
+try:
+    from lexdiff import DependencyError, DiffRow, run_diff
+except SyntaxError as exc:  # pragma: no cover - import-time guard
+    raise SystemExit(
+        "lexdiff 소스에 병합 충돌 표식(======= 등)이 남아 있어 실행할 수 없습니다.\n"
+        "레포지토리를 깨끗한 상태로 다시 받아 새로운 사본을 실행해 주세요."
+    ) from exc
 
 app = Flask(__name__, template_folder="webapp/templates", static_folder="webapp/static")
 app.secret_key = os.environ.get("LEXDIFF_SECRET_KEY", "lexdiff-web-ui")

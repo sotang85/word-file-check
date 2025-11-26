@@ -13,7 +13,17 @@ import sys
 from pathlib import Path
 from typing import Callable, Dict
 
-from lexdiff.ollama import DEFAULT_HOST
+from lexdiff._import_guard import ensure_source_clean
+
+ensure_source_clean(Path(__file__).resolve().parent / "lexdiff" / "__init__.py")
+
+try:
+    from lexdiff.ollama import DEFAULT_HOST
+except SyntaxError as exc:  # pragma: no cover - import-time guard
+    raise SystemExit(
+        "lexdiff 소스에 병합 충돌 표식(======= 등)이 남아 있어 런처를 실행할 수 없습니다.\n"
+        "레포지토리를 깨끗한 상태로 다시 받아주세요."
+    ) from exc
 
 ROOT_DIR = Path(__file__).resolve().parent
 VENV_DIR = ROOT_DIR / ".venv"

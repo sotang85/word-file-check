@@ -3,10 +3,40 @@ from __future__ import annotations
 
 import argparse
 import sys
+from pathlib import Path
 from typing import Sequence
 
-from lexdiff import DependencyError, compute_diff
-from lexdiff.ollama import DEFAULT_HOST, OllamaUnavailable, ensure_ollama_cli, request_review
+from lexdiff._import_guard import ensure_source_clean
+
+ensure_source_clean(Path(__file__).resolve().parent / "lexdiff" / "__init__.py")
+
+
+def _import_core():
+    try:
+        from lexdiff import DependencyError, compute_diff  # type: ignore
+        from lexdiff.ollama import (  # type: ignore
+            DEFAULT_HOST,
+            OllamaUnavailable,
+            ensure_ollama_cli,
+            request_review,
+        )
+    except SyntaxError as exc:  # pragma: no cover - import-time guard
+        raise SystemExit(
+            "lexdiff 소스에 병합 충돌 표식(======= 등)이 남아 있어 실행할 수 없습니다.\n"
+            "레포지토리를 깨끗한 상태로 다시 받아 Ollama 리뷰를 실행해 주세요."
+        ) from exc
+
+    return DependencyError, compute_diff, DEFAULT_HOST, OllamaUnavailable, ensure_ollama_cli, request_review
+
+
+(
+    DependencyError,
+    compute_diff,
+    DEFAULT_HOST,
+    OllamaUnavailable,
+    ensure_ollama_cli,
+    request_review,
+) = _import_core()
 
 
 def build_parser() -> argparse.ArgumentParser:
