@@ -9,9 +9,9 @@ from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 from typing import Dict, List
 
-from lexdiff._import_guard import ensure_source_clean
+from lexdiff._import_guard import ensure_tree_clean
 
-ensure_source_clean(Path(__file__).resolve().parent / "lexdiff" / "__init__.py")
+ensure_tree_clean(Path(__file__).resolve().parent)
 
 try:
     from lexdiff import DependencyError, DiffResult, Operation, run_diff

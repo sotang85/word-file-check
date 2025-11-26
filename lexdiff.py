@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from lexdiff._import_guard import ensure_source_clean
+from lexdiff._import_guard import ensure_tree_clean
 
-ensure_source_clean(Path(__file__).resolve().parent / "lexdiff" / "__init__.py")
+ensure_tree_clean(Path(__file__).resolve().parent)
 
 try:
     from lexdiff.cli import main

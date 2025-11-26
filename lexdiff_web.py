@@ -11,9 +11,9 @@ import uuid
 from pathlib import Path
 from typing import Dict, Iterable, List
 
-from lexdiff._import_guard import ensure_source_clean
+from lexdiff._import_guard import ensure_tree_clean
 
-ensure_source_clean(Path(__file__).resolve().parent / "lexdiff" / "__init__.py")
+ensure_tree_clean(Path(__file__).resolve().parent)
 
 if importlib.util.find_spec("flask") is None:  # pragma: no cover - 환경 종속 확인
     raise SystemExit(
