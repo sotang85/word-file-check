@@ -61,14 +61,20 @@ class ImportGuardTests(unittest.TestCase):
             ignored.parent.mkdir(parents=True)
 
             # Write a real conflict marker into the ignored file; it should be skipped.
-            ignored.write_text("<<<<<<< ours\nshared\n=======\ntheirs\n>>>>>>> branch\n", encoding="utf-8")
+            ignored.write_text(
+                "<<<<<<< ours\nshared\n=======\ntheirs\n>>>>>>> branch\n",
+                encoding="utf-8",
+            )
 
             # Without ignore, the conflict would be detected.
             with self.assertRaises(SystemExit):
                 ensure_tree_clean(root, ignore=())
 
             # With an explicit ignore entry, the scan should pass.
-            ensure_tree_clean(root, ignore=(Path("tests") / "fixture_with_markers.py",))
+            ensure_tree_clean(
+                root,
+                ignore=(Path("tests") / "fixture_with_markers.py",),
+            )
 
     def test_ignored_by_filename(self) -> None:
         """Files named test_import_guard.py are skipped by default to avoid false hits."""
@@ -79,7 +85,10 @@ class ImportGuardTests(unittest.TestCase):
             nested.parent.mkdir(parents=True)
 
             # Even with a real conflict marker, the filename-based ignore should skip it.
-            nested.write_text("<<<<<<< ours\nshared\n=======\ntheirs\n>>>>>>> branch\n", encoding="utf-8")
+            nested.write_text(
+                "<<<<<<< ours\nshared\n=======\ntheirs\n>>>>>>> branch\n",
+                encoding="utf-8",
+            )
 
             # Scan should succeed because filename matches the default ignore list.
             ensure_tree_clean(root)
