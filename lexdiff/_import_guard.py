@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Optional, Sequence
+from typing import Iterable, Optional, Sequence
 
 
 _DEFAULT_PATTERNS: Sequence[re.Pattern[str]] = (
@@ -35,12 +35,25 @@ def ensure_source_clean(source_path: Path, *, patterns: Sequence[re.Pattern[str]
         )
 
 
-def _find_conflict(root: Path, *, patterns: Sequence[re.Pattern[str]]) -> Optional[Path]:
+def _find_conflict(
+    root: Path,
+    *,
+    patterns: Sequence[re.Pattern[str]],
+    ignore: Sequence[Path] | None = None,
+    ignore_names: Iterable[str] = (),
+) -> Optional[Path]:
     """Return the first Python file containing merge-conflict markers, if any."""
 
+    ignore_set = {(root / p).resolve() for p in ignore or ()}
+    ignore_name_set = set(ignore_names)
+
     for path in root.rglob("*.py"):
+        resolved = path.resolve()
+        if resolved in ignore_set or path.name in ignore_name_set:
+            continue
+
         try:
-            contents = path.read_text(encoding="utf-8", errors="ignore")
+            contents = resolved.read_text(encoding="utf-8", errors="ignore")
         except OSError:
             continue
         if _contains_conflict_markers(contents, patterns=patterns):
@@ -48,10 +61,21 @@ def _find_conflict(root: Path, *, patterns: Sequence[re.Pattern[str]]) -> Option
     return None
 
 
-def ensure_tree_clean(root: Path, *, patterns: Sequence[re.Pattern[str]] = _DEFAULT_PATTERNS) -> None:
+_DEFAULT_IGNORE = (Path("tests") / "test_import_guard.py",)
+
+
+def ensure_tree_clean(
+    root: Path,
+    *,
+    patterns: Sequence[re.Pattern[str]] = _DEFAULT_PATTERNS,
+    ignore: Sequence[Path] | None = _DEFAULT_IGNORE,
+    ignore_names: Iterable[str] = ("test_import_guard.py",),
+) -> None:
     """Scan an entire tree for conflict markers before importing anything heavy."""
 
-    conflict = _find_conflict(root, patterns=patterns)
+    conflict = _find_conflict(
+        root, patterns=patterns, ignore=ignore, ignore_names=ignore_names
+    )
     if conflict is None:
         return
 
